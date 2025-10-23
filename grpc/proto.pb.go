@@ -22,9 +22,12 @@ const (
 )
 
 type Message struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ClientId       int32                  `protobuf:"varint,1,opt,name=ClientId,proto3" json:"ClientId,omitempty"`
+	LamportClock   int32                  `protobuf:"varint,2,opt,name=LamportClock,proto3" json:"LamportClock,omitempty"`
+	MessageContent string                 `protobuf:"bytes,3,opt,name=MessageContent,proto3" json:"MessageContent,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
@@ -57,15 +60,90 @@ func (*Message) Descriptor() ([]byte, []int) {
 	return file_proto_proto_rawDescGZIP(), []int{0}
 }
 
-type BroadcastMessage struct {
+func (x *Message) GetClientId() int32 {
+	if x != nil {
+		return x.ClientId
+	}
+	return 0
+}
+
+func (x *Message) GetLamportClock() int32 {
+	if x != nil {
+		return x.LamportClock
+	}
+	return 0
+}
+
+func (x *Message) GetMessageContent() string {
+	if x != nil {
+		return x.MessageContent
+	}
+	return ""
+}
+
+type ClientInformation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	ClientId      int32                  `protobuf:"varint,1,opt,name=ClientId,proto3" json:"ClientId,omitempty"`
+	LamportClock  int32                  `protobuf:"varint,2,opt,name=LamportClock,proto3" json:"LamportClock,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *ClientInformation) Reset() {
+	*x = ClientInformation{}
+	mi := &file_proto_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientInformation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientInformation) ProtoMessage() {}
+
+func (x *ClientInformation) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientInformation.ProtoReflect.Descriptor instead.
+func (*ClientInformation) Descriptor() ([]byte, []int) {
+	return file_proto_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ClientInformation) GetClientId() int32 {
+	if x != nil {
+		return x.ClientId
+	}
+	return 0
+}
+
+func (x *ClientInformation) GetLamportClock() int32 {
+	if x != nil {
+		return x.LamportClock
+	}
+	return 0
+}
+
+type BroadcastMessage struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	LamportClock   int32                  `protobuf:"varint,1,opt,name=LamportClock,proto3" json:"LamportClock,omitempty"`
+	MessageContent string                 `protobuf:"bytes,2,opt,name=MessageContent,proto3" json:"MessageContent,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
 func (x *BroadcastMessage) Reset() {
 	*x = BroadcastMessage{}
-	mi := &file_proto_proto_msgTypes[1]
+	mi := &file_proto_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -77,7 +155,7 @@ func (x *BroadcastMessage) String() string {
 func (*BroadcastMessage) ProtoMessage() {}
 
 func (x *BroadcastMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_proto_msgTypes[1]
+	mi := &file_proto_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -90,7 +168,65 @@ func (x *BroadcastMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastMessage.ProtoReflect.Descriptor instead.
 func (*BroadcastMessage) Descriptor() ([]byte, []int) {
-	return file_proto_proto_rawDescGZIP(), []int{1}
+	return file_proto_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BroadcastMessage) GetLamportClock() int32 {
+	if x != nil {
+		return x.LamportClock
+	}
+	return 0
+}
+
+func (x *BroadcastMessage) GetMessageContent() string {
+	if x != nil {
+		return x.MessageContent
+	}
+	return ""
+}
+
+type ClientId struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=Id,proto3" json:"Id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClientId) Reset() {
+	*x = ClientId{}
+	mi := &file_proto_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClientId) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientId) ProtoMessage() {}
+
+func (x *ClientId) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientId.ProtoReflect.Descriptor instead.
+func (*ClientId) Descriptor() ([]byte, []int) {
+	return file_proto_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ClientId) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
 }
 
 type Empty struct {
@@ -101,7 +237,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_proto_proto_msgTypes[2]
+	mi := &file_proto_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +249,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_proto_msgTypes[2]
+	mi := &file_proto_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,19 +262,32 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_proto_proto_rawDescGZIP(), []int{2}
+	return file_proto_proto_rawDescGZIP(), []int{4}
 }
 
 var File_proto_proto protoreflect.FileDescriptor
 
 const file_proto_proto_rawDesc = "" +
 	"\n" +
-	"\vproto.proto\"\t\n" +
-	"\aMessage\"\x12\n" +
-	"\x10broadcastMessage\"\a\n" +
-	"\x05Empty20\n" +
+	"\vproto.proto\"q\n" +
+	"\aMessage\x12\x1a\n" +
+	"\bClientId\x18\x01 \x01(\x05R\bClientId\x12\"\n" +
+	"\fLamportClock\x18\x02 \x01(\x05R\fLamportClock\x12&\n" +
+	"\x0eMessageContent\x18\x03 \x01(\tR\x0eMessageContent\"S\n" +
+	"\x11ClientInformation\x12\x1a\n" +
+	"\bClientId\x18\x01 \x01(\x05R\bClientId\x12\"\n" +
+	"\fLamportClock\x18\x02 \x01(\x05R\fLamportClock\"^\n" +
+	"\x10BroadcastMessage\x12\"\n" +
+	"\fLamportClock\x18\x01 \x01(\x05R\fLamportClock\x12&\n" +
+	"\x0eMessageContent\x18\x02 \x01(\tR\x0eMessageContent\"\x1a\n" +
+	"\bClientId\x12\x0e\n" +
+	"\x02Id\x18\x01 \x01(\x05R\x02Id\"\a\n" +
+	"\x05Empty2\x8c\x01\n" +
 	"\bChitChat\x12$\n" +
-	"\x0epublishMessage\x12\b.Message\x1a\x06.Empty\"\x00B\x10Z\x0eHW3/grpc/protob\x06proto3"
+	"\x0ePublishMessage\x12\b.Message\x1a\x06.Empty\"\x00\x12-\n" +
+	"\n" +
+	"JoinSystem\x12\x12.ClientInformation\x1a\t.ClientId\"\x00\x12+\n" +
+	"\vLeaveSystem\x12\x12.ClientInformation\x1a\x06.Empty\"\x00B\x10Z\x0eHW3/grpc/protob\x06proto3"
 
 var (
 	file_proto_proto_rawDescOnce sync.Once
@@ -152,17 +301,23 @@ func file_proto_proto_rawDescGZIP() []byte {
 	return file_proto_proto_rawDescData
 }
 
-var file_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_proto_goTypes = []any{
-	(*Message)(nil),          // 0: Message
-	(*BroadcastMessage)(nil), // 1: broadcastMessage
-	(*Empty)(nil),            // 2: Empty
+	(*Message)(nil),           // 0: Message
+	(*ClientInformation)(nil), // 1: ClientInformation
+	(*BroadcastMessage)(nil),  // 2: BroadcastMessage
+	(*ClientId)(nil),          // 3: ClientId
+	(*Empty)(nil),             // 4: Empty
 }
 var file_proto_proto_depIdxs = []int32{
-	0, // 0: ChitChat.publishMessage:input_type -> Message
-	2, // 1: ChitChat.publishMessage:output_type -> Empty
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 0: ChitChat.PublishMessage:input_type -> Message
+	1, // 1: ChitChat.JoinSystem:input_type -> ClientInformation
+	1, // 2: ChitChat.LeaveSystem:input_type -> ClientInformation
+	4, // 3: ChitChat.PublishMessage:output_type -> Empty
+	3, // 4: ChitChat.JoinSystem:output_type -> ClientId
+	4, // 5: ChitChat.LeaveSystem:output_type -> Empty
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -179,7 +334,7 @@ func file_proto_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_proto_rawDesc), len(file_proto_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

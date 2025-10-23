@@ -3,28 +3,74 @@ package main
 import (
 	proto "ITUServer/grpc" //make connection
 	"context"              //make connection - the context of the connection
+	"errors"               //create custom errors
+	"log"                  //logs - used to keep track of messages
+	"net"                  //make connection to net
+	"unicode/utf8"         //used to verify number of chars
+
 	"google.golang.org/grpc"
-	"log" //logs - used to keep track of messages
-	"net" //make connection to net
 )
 
 type ChitChatServer struct {
 	//part of the proto - we are creating an Unimplemented server
 	proto.UnimplementedChitChatServer
-	//todo: define what we want the struct to contain, if it should contain anything
+	clients      map[int32]*Client //map of active clients todo: should maybe be list
+	lamportClock int32             //todo: implement
+	clientNextId int32
 }
 
-// Method only be activated if called through proto
-// (s*ITU_databaseServer) the reciever - it points to the struct ITU_databaseServer that we want to use (it is the same as parsing the student as a parameter)
-// GetStudents(ctx context.Context, in *proto.Empty) function name and parameters of the function
-// (*proto.Students, error) is the return type
-func (s *ChitChatServer) publishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) { //if we want something with an empty in it
+type Client struct {
+	ClientId         int32
+	BroadcastChannel chan *proto.BroadcastMessage
+}
+
+func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) { //if we want something with an empty in it
+	//validating length of Message is <128 using RuneCountInString
+	if utf8.RuneCountInString(in.MessageContent) > 128 {
+		return nil, errors.New("message is too long, must be under 128 characters")
+	}
 	return &proto.Empty{}, nil //returns the pointer to the student in memory - what we are encourages to do [should be able to see this from the function declaration (?)]
 }
 
+func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
+	//todo: assign client ID and make message that it returns
+	clientId := s.clientNextId
+	s.clientNextId++
+	//add client to clients list
+	client := &Client{
+		ClientId:         clientId,
+		BroadcastChannel: make(chan *proto.BroadcastMessage, 10), //buffered channel with size 10
+	}
+
+	s.clients[clientId] = client
+
+	//todo: start go routine
+
+	//todo: log message //todo: both to terminal and file
+
+	//todo: broadcast message: "Participant X joined Chit Chat at logical time L". //todo: should be in its own message
+
+	return &proto.ClientId{Id: clientId}, nil
+}
+
+func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInformation) (*proto.Empty, error) {
+	//remove client ID from list
+	return &proto.Empty{}, nil
+}
+
+func (s *ChitChatServer) Broadcast(broadcastMessage string) { //todo: beware the new client does not receive
+	for ClientId, client := range s.clients {
+		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage}
+		log.Printf("[Server] Sent to %s: %s", ClientId, broadcastMessage)
+	}
+	//find logical time
+	//find active clients and then corresponding goroutines
+	//send message (broadcastMessage) to those goroutines
+}
+
 func main() {
-	//creation of clients
-	server := &ChitChatServer{}
+	server := &ChitChatServer{clients: make(map[int32]*Client), lamportClock: 0, clientNextId: 1}
+	//creation of clients here
 	server.start_server()
 }
 
@@ -44,7 +90,6 @@ func (s *ChitChatServer) start_server() {
 	if err != nil {
 		log.Fatalf("Did not work")
 	}
-
 }
 
 /* Everytime something is changed in this file, run the following command in the terminal:

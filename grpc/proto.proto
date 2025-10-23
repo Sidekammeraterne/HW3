@@ -2,35 +2,31 @@ syntax = "proto3";//the type of proto we use
 option go_package = "HW3/grpc/proto"; //import path
 
 message Message {
-  string messageContent = 1;
-  //todo: add a clock
+  int32 ClientId = 1;
+  int32 LamportClock = 2;
+  string MessageContent = 3;
   //todo: ikke her (server-side or client-side), men: maximum length of 128 characters
+  //todo: event type?
 }
 
-//The Chit Chat service broadcasts each published message to all currently active participants
-message broadcastMessage{
- //format: message content and a logical timestamp
+message ClientInformation{
+  int32 ClientId = 1;
+  int32 LamportClock = 2;
 }
 
-//When a new participant X joins, the service must broadcast a message
-message clientConnection{
-  //client joins the ChitChat
-  //Format: Participant X joined Chit Chat at logical time L
+message BroadcastMessage{
+  int32 LamportClock = 1;
+  string MessageContent = 2;
 }
 
-//When a participant X leaves, the service must broadcast a message
-message clientDisconnection{
-  //client leaves the ChitChat
-  //string "Participant" + name + "left Chit Chat at logical time" + time;
-  //Format: Participant X left Chit Chat at logical time L
+message ClientId{
+  int32 Id = 1;
 }
-
-
-
-
 
 message Empty {} //Empty is a placeholder message with no fields, used when no input is needed
 
 service ChitChat { //declares a gRPC service
-  rpc publishMessage (Message) returns (Empty) {}; //function we can call from client (or other places), request contains Empty (don't send any information with the request/message) it returns the list of Students
+  rpc PublishMessage (Message) returns (Empty) {}; //function we call from client, request contains Message and returns empty
+  rpc JoinSystem (ClientInformation) returns (ClientId){};
+  rpc LeaveSystem (ClientInformation) returns (Empty){};
 }

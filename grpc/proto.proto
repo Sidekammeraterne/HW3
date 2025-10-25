@@ -29,4 +29,5 @@ service ChitChat { //declares a gRPC service
   rpc PublishMessage (Message) returns (Empty) {}; //function we call from client, request contains Message and returns empty
   rpc JoinSystem (ClientInformation) returns (ClientId){};
   rpc LeaveSystem (ClientInformation) returns (Empty){};
+  rpc Broadcast (ClientId) returns (stream BroadcastMessage){};
 }

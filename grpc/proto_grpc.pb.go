@@ -22,6 +22,7 @@ const (
 	ChitChat_PublishMessage_FullMethodName = "/ChitChat/PublishMessage"
 	ChitChat_JoinSystem_FullMethodName     = "/ChitChat/JoinSystem"
 	ChitChat_LeaveSystem_FullMethodName    = "/ChitChat/LeaveSystem"
+	ChitChat_Broadcast_FullMethodName      = "/ChitChat/Broadcast"
 )
 
 // ChitChatClient is the client API for ChitChat service.
@@ -31,6 +32,7 @@ type ChitChatClient interface {
 	PublishMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Empty, error)
 	JoinSystem(ctx context.Context, in *ClientInformation, opts ...grpc.CallOption) (*ClientId, error)
 	LeaveSystem(ctx context.Context, in *ClientInformation, opts ...grpc.CallOption) (*Empty, error)
+	Broadcast(ctx context.Context, in *ClientId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[BroadcastMessage], error)
 }
 
 type chitChatClient struct {
@@ -71,6 +73,25 @@ func (c *chitChatClient) LeaveSystem(ctx context.Context, in *ClientInformation,
 	return out, nil
 }
 
+func (c *chitChatClient) Broadcast(ctx context.Context, in *ClientId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[BroadcastMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ChitChat_ServiceDesc.Streams[0], ChitChat_Broadcast_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ClientId, BroadcastMessage]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ChitChat_BroadcastClient = grpc.ServerStreamingClient[BroadcastMessage]
+
 // ChitChatServer is the server API for ChitChat service.
 // All implementations must embed UnimplementedChitChatServer
 // for forward compatibility.
@@ -78,6 +99,7 @@ type ChitChatServer interface {
 	PublishMessage(context.Context, *Message) (*Empty, error)
 	JoinSystem(context.Context, *ClientInformation) (*ClientId, error)
 	LeaveSystem(context.Context, *ClientInformation) (*Empty, error)
+	Broadcast(*ClientId, grpc.ServerStreamingServer[BroadcastMessage]) error
 	mustEmbedUnimplementedChitChatServer()
 }
 
@@ -96,6 +118,9 @@ func (UnimplementedChitChatServer) JoinSystem(context.Context, *ClientInformatio
 }
 func (UnimplementedChitChatServer) LeaveSystem(context.Context, *ClientInformation) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LeaveSystem not implemented")
+}
+func (UnimplementedChitChatServer) Broadcast(*ClientId, grpc.ServerStreamingServer[BroadcastMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
 }
 func (UnimplementedChitChatServer) mustEmbedUnimplementedChitChatServer() {}
 func (UnimplementedChitChatServer) testEmbeddedByValue()                  {}
@@ -172,6 +197,17 @@ func _ChitChat_LeaveSystem_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChitChat_Broadcast_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ClientId)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ChitChatServer).Broadcast(m, &grpc.GenericServerStream[ClientId, BroadcastMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ChitChat_BroadcastServer = grpc.ServerStreamingServer[BroadcastMessage]
+
 // ChitChat_ServiceDesc is the grpc.ServiceDesc for ChitChat service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -192,6 +228,12 @@ var ChitChat_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChitChat_LeaveSystem_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Broadcast",
+			Handler:       _ChitChat_Broadcast_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto.proto",
 }

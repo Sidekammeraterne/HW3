@@ -4,9 +4,10 @@ import (
 	proto "ITUServer/grpc" //make connection
 	"context"              //make connection - the context of the connection
 	"errors"               //create custom errors
-	"log"                  //logs - used to keep track of messages
-	"net"                  //make connection to net
-	"unicode/utf8"         //used to verify number of chars
+	"fmt"
+	"log"          //logs - used to keep track of messages
+	"net"          //make connection to net
+	"unicode/utf8" //used to verify number of chars
 
 	"google.golang.org/grpc"
 )
@@ -22,6 +23,7 @@ type ChitChatServer struct {
 type Client struct {
 	ClientId         int32
 	BroadcastChannel chan *proto.BroadcastMessage
+	Stream           proto.ChitChat_BroadcastServer
 }
 
 func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) { //if we want something with an empty in it
@@ -44,12 +46,6 @@ func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInforma
 
 	s.clients[clientId] = client
 
-	//todo: start go routine
-
-	//todo: log message //todo: both to terminal and file
-
-	//todo: broadcast message: "Participant X joined Chit Chat at logical time L". //todo: should be in its own message
-
 	return &proto.ClientId{Id: clientId}, nil
 }
 
@@ -58,7 +54,23 @@ func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInform
 	return &proto.Empty{}, nil
 }
 
-func (s *ChitChatServer) Broadcast(broadcastMessage string) { //todo: beware the new client does not receive
+func (s *ChitChatServer) Broadcast(ctx context.Context, in *proto.ClientId, stream proto.ChitChat_BroadcastServer) error {
+	client, ok := s.clients[in.Id]
+	if !ok {
+		log.Fatalf("client not found %v", in.Id)
+	}
+	client.Stream = stream
+	//todo: start go routine
+	go s.start_client(client)
+	//todo: log message //todo: both to terminal and file
+
+	//todo: broadcast message: "Participant X joined Chit Chat at logical time L". //todo: should be in its own message
+	message := fmt.Sprintf("Participant %d joined Chit Chat at logical time %d", client.ClientId, s.lamportClock)
+	s.BroadcastService(message)
+	return nil
+}
+
+func (s *ChitChatServer) BroadcastService(broadcastMessage string) { //todo: beware the new client does not receive
 	for ClientId, client := range s.clients {
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage}
 		log.Printf("[Server] Sent to %s: %s", ClientId, broadcastMessage)
@@ -66,6 +78,19 @@ func (s *ChitChatServer) Broadcast(broadcastMessage string) { //todo: beware the
 	//find logical time
 	//find active clients and then corresponding goroutines
 	//send message (broadcastMessage) to those goroutines
+}
+
+// listens for broadcast messages and sends it through the stream to the client
+func (s *ChitChatServer) start_client(c *Client) {
+	for {
+		select {
+		case message := <-c.BroadcastChannel:
+			err := c.Stream.Send(message)
+			if err != nil {
+				log.Fatalf("could not send message to client: %v", err)
+			}
+		}
+	}
 }
 
 func main() {

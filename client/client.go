@@ -57,10 +57,19 @@ func main() {
 	}
 	c.ClientId = Message.Id
 
+	//method to listen for broadcasts?
+	//call the broadcast rpc call to open stream to receive messages from server
+	stream, erro := client.Broadcast(context.Background(), &proto.ClientId{Id: c.ClientId})
+	if erro != nil {
+		log.Fatalf("did not recieve anything or failed to send %v", erro)
+	}
+
+	//listens on the stream todo: if it can should probably be in its own method
+	message, _ := stream.Recv()
+	log.Println(message) //todo: just to use the variable
+
 	//listens to the terminal for new commands
 	go listenCommand()
-
-	//method to listen for broadcasts?
 
 }
 
@@ -70,6 +79,6 @@ func listenCommand() {
 	fmt.Println("Type 'leave' or 'message ...'")
 
 	for scanner.Scan() {
-		
+
 	}
 }

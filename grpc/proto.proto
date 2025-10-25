@@ -27,7 +27,7 @@ message Empty {} //Empty is a placeholder message with no fields, used when no i
 
 service ChitChat { //declares a gRPC service
   rpc PublishMessage (Message) returns (Empty) {}; //function we call from client, request contains Message and returns empty
-  rpc JoinSystem (ClientInformation) returns (ClientId){};
-  rpc LeaveSystem (ClientInformation) returns (Empty){};
-  rpc Broadcast (ClientId) returns (stream BroadcastMessage){};
+  rpc JoinSystem (ClientInformation) returns (ClientId){}; //When Client asks for an ID
+  rpc LeaveSystem (ClientInformation) returns (Empty){}; //When Client announces that it's leaving system
+  rpc Broadcast (ClientId) returns (stream BroadcastMessage){}; //When Client opens a stream to receive broadcasts, for server to sned to clien
 }

@@ -18,6 +18,7 @@ type ChitChatServer struct {
 	clients      map[int32]*Client //map of active clients todo: should maybe be list
 	lamportClock int32             //todo: implement
 	clientNextId int32
+	//todo: maybe use a Lock
 }
 
 type Client struct {
@@ -115,6 +116,14 @@ func (s *ChitChatServer) start_server() {
 	if err != nil {
 		log.Fatalf("Did not work")
 	}
+}
+
+func (s *ChitChatServer) updateLamportClock(remoteLamport int32) int32 {
+	if remoteLamport > s.lamportClock {
+		s.lamportClock = remoteLamport
+	}
+	s.lamportClock++
+	return s.lamportClock
 }
 
 /* Everytime something is changed in this file, run the following command in the terminal:

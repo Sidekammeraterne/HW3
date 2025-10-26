@@ -41,7 +41,7 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
 	s.updateLamportClockOnReceive(in.LamportClock) //check max lamport todo: is this wrong
 
-	//todo: assign client ID and make message that it returns
+	// Assign client id
 	clientId := s.clientNextId
 	s.clientNextId++
 
@@ -52,6 +52,7 @@ func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInforma
 	}
 	s.clients[clientId] = client
 
+	// Return message containing the assigned id
 	return &proto.ClientId{Id: clientId}, nil
 }
 
@@ -68,7 +69,7 @@ func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInform
 func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_BroadcastServer) error { //todo, is this broadcast only for when joining?
 	client, ok := s.clients[in.Id]
 	if !ok {
-		log.Fatalf("client not found %v", in.Id) //todo: unsure if fatalf should be used, or error. Fatal exits program
+		log.Fatalf("client not found %v", in.Id) //todo: unsure if fatalf should be used, or error. Fatal exits program - Marie: I don't know but can't find the error method :(
 	}
 	client.Stream = stream
 	//start goRoutine
@@ -82,16 +83,16 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 		lamport,
 	)
 
-	// Keep the stream open until the client disconnects
+	// Keep the stream open until the client disconnects - And then the stream is closed
 	<-stream.Context().Done()
 
-	// LEAVE announcement happens LATER, only after disconnect
-	delete(s.clients, client.ClientId)
-	lamport = s.updateLamportClockOnReceive(0)
-	s.BroadcastService(
-		fmt.Sprintf("Participant %d left Chit Chat at logical time %d", client.ClientId, lamport),
-		lamport,
-	)
+	// LEAVE announcement happens LATER, only after disconnect // todo: the same as in the leave function for the rpc call - do believe it should stay in Leave()
+	//delete(s.clients, client.ClientId)
+	//lamport = s.updateLamportClockOnReceive(0)
+	//s.BroadcastService(
+	//	fmt.Sprintf("Participant %d left Chit Chat at logical time %d", client.ClientId, lamport),
+	//	lamport,
+	//)
 	return nil
 }
 
@@ -101,7 +102,7 @@ func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: lamport}
 		log.Printf("[Server] Sent to %d: %s", ClientId, broadcastMessage)
 	}
-	//todo we should “support multiple concurrent client connections without blocking message delivery.”
+	//todo we should “support multiple concurrent client connections without blocking message delivery.” Marie: as far as I have understood, this is why we use go routines and channels to send out broadcast messages - but I don't know how to test it
 	// which means for should maybe be switch with a default case that handles slow client
 	// but don't really know what should happen in the case
 	//find logical time
@@ -117,7 +118,10 @@ func (s *ChitChatServer) start_client(c *Client) {
 			err := c.Stream.Send(message)
 			if err != nil {
 				log.Fatalf("could not send message to client: %v", err)
-			} //todo: same here, fatal or error?
+			} //todo: same here, fatal or error? Marie: I don't know
+		// The go routine returns when the client leaves the system
+		case <-c.Stream.Context().Done():
+			return
 		}
 	}
 }

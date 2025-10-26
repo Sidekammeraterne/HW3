@@ -67,6 +67,20 @@ func main() { //todo: should we split up into methods
 		log.Fatalf("did not recieve anything or failed to send %v", erro)
 	}
 
+	//Read in a goRoutione, loops forever
+	go func() {
+		for {
+			Message, err := stream.Recv()
+			if err != nil {
+				log.Printf("failed to receive message: %v", err)
+				return
+			}
+			//When receiving check max lamport
+			c.updateLamportOnReceive(Message.LamportClock)
+			log.Printf("Lamport Clock: %d", Message.LamportClock)
+		}
+	}()
+
 	//listens on the stream todo: if it can should probably be in its own method
 	message, _ := stream.Recv()
 	log.Println(message) //todo: just to use the variable

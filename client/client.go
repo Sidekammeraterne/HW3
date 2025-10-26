@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +19,8 @@ type Client struct {
 	ClientId     int32
 	Conn         *grpc.ClientConn
 	LamportClock int32
+
+	//todo: does it need some way to stop broadcast stream when leaving?
 }
 
 func main() { //todo: should we split up into methods
@@ -43,7 +46,7 @@ func main() { //todo: should we split up into methods
 	}
 	c.ClientId = Message.Id
 
-	log.Printf("[Client] Joined Server: id=%d (L=%d)", c.ClientId, c.LamportClock) //todo: is this where to log?
+	log.Printf("[Client] Joined Server: id=%d at time %d)", c.ClientId, c.LamportClock) //todo: is this where to log?
 
 	//method to listen for broadcasts?
 	//call the broadcast rpc call to open stream to receive messages from server
@@ -62,7 +65,7 @@ func main() { //todo: should we split up into methods
 			}
 			//When receiving check max lamport
 			c.updateLamportOnReceive(Message.LamportClock)
-			log.Printf("[Client][Deliver]Lamport Clock: %d, Message: %s", c.LamportClock, Message)
+			// todo: debug statement, delete: log.Printf("[Client][Deliver]Lamport Clock: %d, Message: %s", c.LamportClock, Message)
 		}
 	}()
 
@@ -87,12 +90,12 @@ func (c *Client) listenCommand() {
 		}
 		input = scanner.Text() //holds input
 
-		switch input {
-		case "leave":
+		switch {
+		case input == "leave":
 			c.leave()
 			return
 
-		case "message":
+		case strings.HasPrefix(input, "message "):
 			text := input[8:] //holds everything after "message "
 			//if message is empty
 			if text == "" {
@@ -100,7 +103,7 @@ func (c *Client) listenCommand() {
 				continue
 			}
 			c.sendMessage(text)
-		case "":
+		case input == "":
 			//if input was empty, were ignoring it
 		default:
 			fmt.Println("unknown command, try again")
@@ -116,7 +119,7 @@ func (c *Client) IncrementLamport() int32 {
 	return c.LamportClock
 }
 
-// Calls the IncrementLamport function, then returns ClientInformation //todo: rename? is it what happend before joining system?
+// Calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system?
 func (c *Client) ClientInformation() *proto.ClientInformation {
 	c.IncrementLamport()
 	return &proto.ClientInformation{
@@ -140,7 +143,7 @@ func (c *Client) leave() {
 		ClientId:     c.ClientId,
 		LamportClock: c.LamportClock,
 	})
-	log.Printf("[Client] requested leave (L=%d)", c.LamportClock) //todo
+	log.Printf("[Client] requested leave at time %d", c.LamportClock) //todo
 }
 
 // Publish RPC (Lamport++ before send)
@@ -155,5 +158,5 @@ func (c *Client) sendMessage(text string) {
 		log.Printf("[Client] publish failed: %v", err)
 		return
 	}
-	log.Printf("[Client] sent: %q (L=%d)", text, c.LamportClock)
+	log.Printf("[Client] sent: %q at time %d)", text, c.LamportClock)
 }

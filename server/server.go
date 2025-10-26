@@ -95,6 +95,7 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 	return nil
 }
 
+// loops over clients in server,pushes message to clients broadcast channels and then prints 'sent to..'
 func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32) { //todo: beware the new client does not receive
 	for ClientId, client := range s.clients {
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: lamport}

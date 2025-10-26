@@ -21,11 +21,12 @@ type Client struct {
 }
 
 // Increments the lamport clock by one
-func (c *Client) IncrementLamport() {
+func (c *Client) IncrementLamport() int32 {
 	c.LamportClock++
+	return c.LamportClock
 }
 
-// Calls the IncrementLamport function, then returns ClientInformation
+// Calls the IncrementLamport function, then returns ClientInformation //todo: rename? is it what happend before joining system?
 func (c *Client) ClientInformation() *proto.ClientInformation {
 	c.IncrementLamport()
 	return &proto.ClientInformation{
@@ -57,6 +58,8 @@ func main() {
 	}
 	c.ClientId = Message.Id
 
+	log.Printf("[Client] Joined Server: id=%d (L=%d)", c.ClientId, c.LamportClock) //todo: is this where to log?
+
 	//method to listen for broadcasts?
 	//call the broadcast rpc call to open stream to receive messages from server
 	stream, erro := client.Broadcast(context.Background(), &proto.ClientId{Id: c.ClientId})
@@ -81,4 +84,12 @@ func listenCommand() {
 	for scanner.Scan() {
 
 	}
+}
+
+// when receiving from server, check max and increment
+func (c *Client) recievingMessage(serverLamport int32) {
+	if serverLamport > c.LamportClock {
+		c.LamportClock = serverLamport
+	}
+	c.IncrementLamport()
 }

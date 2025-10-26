@@ -35,7 +35,7 @@ func (c *Client) ClientInformation() *proto.ClientInformation {
 	}
 }
 
-func main() {
+func main() { //todo: should we split up into methods
 	// creates a connection related to a client who can speak to the specified port, grpc client can ask for a service
 	conn, err := grpc.NewClient("localhost:5050", grpc.WithTransportCredentials(insecure.NewCredentials())) //security, don't think much about it. "Boilerplate".
 	if err != nil {
@@ -87,7 +87,7 @@ func listenCommand() {
 }
 
 // when receiving from server, check max and increment
-func (c *Client) recievingMessage(serverLamport int32) {
+func (c *Client) updateLamportOnReceive(serverLamport int32) {
 	if serverLamport > c.LamportClock {
 		c.LamportClock = serverLamport
 	}

@@ -32,19 +32,24 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 	if utf8.RuneCountInString(in.MessageContent) > 128 {
 		return nil, errors.New("message is too long, must be under 128 characters")
 	}
+	lamport := s.updateLamportClockOnReceive(in.LamportClock) //check max and update local lamport
+	//include server lamport in broadcast st. clients can check for max
+	s.BroadcastService(fmt.Sprintf("(%d) %d: %s", lamport, in.ClientId, in.MessageContent))
 	return &proto.Empty{}, nil //returns the pointer to the student in memory - what we are encourages to do [should be able to see this from the function declaration (?)]
 }
 
 func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
+	s.updateLamportClockOnReceive(in.LamportClock) //check max lamport todo: is this wrong
+
 	//todo: assign client ID and make message that it returns
 	clientId := s.clientNextId
 	s.clientNextId++
+
 	//add client to clients list
 	client := &Client{
 		ClientId:         clientId,
 		BroadcastChannel: make(chan *proto.BroadcastMessage, 10), //buffered channel with size 10
 	}
-
 	s.clients[clientId] = client
 
 	return &proto.ClientId{Id: clientId}, nil
@@ -52,13 +57,18 @@ func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInforma
 
 func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInformation) (*proto.Empty, error) {
 	//remove client ID from list
+	delete(s.clients, s.ClientId)
+	lamport := s.updateLamportClockOnReceive(in.LamportClock)
+	s.BroadcastService(
+		fmt.Sprintf("Client %d left ChitChat at time %d", in.ClientId, lamport),
+	)
 	return &proto.Empty{}, nil
 }
 
-func (s *ChitChatServer) Broadcast(ctx context.Context, in *proto.ClientId, stream proto.ChitChat_BroadcastServer) error {
+func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_BroadcastServer) error { //todo, is this broadcast only for when joining?
 	client, ok := s.clients[in.Id]
 	if !ok {
-		log.Fatalf("client not found %v", in.Id)
+		log.Fatalf("client not found %v", in.Id) //todo: unsure if fatalf should be used, or error. Fatal exits program
 	}
 	client.Stream = stream
 	//todo: start go routine
@@ -71,9 +81,9 @@ func (s *ChitChatServer) Broadcast(ctx context.Context, in *proto.ClientId, stre
 	return nil
 }
 
-func (s *ChitChatServer) BroadcastService(broadcastMessage string) { //todo: beware the new client does not receive
+func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32) { //todo: beware the new client does not receive
 	for ClientId, client := range s.clients {
-		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage}
+		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: lamport}
 		log.Printf("[Server] Sent to %s: %s", ClientId, broadcastMessage)
 	}
 	//find logical time
@@ -89,7 +99,7 @@ func (s *ChitChatServer) start_client(c *Client) {
 			err := c.Stream.Send(message)
 			if err != nil {
 				log.Fatalf("could not send message to client: %v", err)
-			}
+			} //todo: same here, fatal or error?
 		}
 	}
 }
@@ -118,7 +128,8 @@ func (s *ChitChatServer) start_server() {
 	}
 }
 
-func (s *ChitChatServer) updateLamportClock(remoteLamport int32) int32 {
+// utility method that on message receive checks max lamport and updates local
+func (s *ChitChatServer) updateLamportClockOnReceive(remoteLamport int32) int32 {
 	if remoteLamport > s.lamportClock {
 		s.lamportClock = remoteLamport
 	}
@@ -126,6 +137,6 @@ func (s *ChitChatServer) updateLamportClock(remoteLamport int32) int32 {
 	return s.lamportClock
 }
 
-/* Everytime something is changed in this file, run the following command in the terminal:
+/* Everytime something is changed in proto file, run the following command in the terminal:
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto.proto
 */

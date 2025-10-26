@@ -20,7 +20,7 @@ type Client struct {
 	Conn         *grpc.ClientConn
 	LamportClock int32
 
-	//todo: does it need some way to stop broadcast stream when leaving?
+	//todo: does it need some way to stop broadcast stream when leaving? Marie: it should probably close the stream - if it can as the stream was created by the server - done in server
 }
 
 func main() { //todo: should we split up into methods
@@ -46,14 +46,14 @@ func main() { //todo: should we split up into methods
 	}
 	c.ClientId = Message.Id
 
-	log.Printf("[Client] Joined Server: id=%d at time %d)", c.ClientId, c.LamportClock) //todo: is this where to log?
-
 	//method to listen for broadcasts?
 	//call the broadcast rpc call to open stream to receive messages from server
 	stream, erro := client.Broadcast(context.Background(), &proto.ClientId{Id: c.ClientId})
 	if erro != nil {
 		log.Fatalf("did not recieve anything or failed to send %v", erro)
 	}
+
+	log.Printf("[Client] Joined Server: With id = %d at logical time %d", c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
 	//Listens on stream Read in a goRoutione, loops forever todo: if it can should probably be in its own method
 	go func() {

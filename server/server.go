@@ -15,8 +15,8 @@ import (
 type ChitChatServer struct {
 	//part of the proto - we are creating an Unimplemented server
 	proto.UnimplementedChitChatServer
-	clients      map[int32]*Client //map of active clients todo: should maybe be list
-	lamportClock int32             //todo: implement
+	clients      map[int32]*Client //map of active clients
+	lamportClock int32
 	clientNextId int32
 	//todo: maybe use a Lock
 }
@@ -34,7 +34,7 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 	}
 	lamport := s.updateLamportClockOnReceive(in.LamportClock) //check max and update local lamport
 	//include server lamport in broadcast st. clients can check for max
-	s.BroadcastService(fmt.Sprintf("(%d) %d: %s", lamport, in.ClientId, in.MessageContent))
+	s.BroadcastService(fmt.Sprintf("(%d) %d: %s", lamport, in.ClientId, in.MessageContent), lamport)
 	return &proto.Empty{}, nil //returns the pointer to the student in memory - what we are encourages to do [should be able to see this from the function declaration (?)]
 }
 
@@ -57,10 +57,10 @@ func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInforma
 
 func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInformation) (*proto.Empty, error) {
 	//remove client ID from list
-	delete(s.clients, s.ClientId)
+	delete(s.clients, in.ClientId)
 	lamport := s.updateLamportClockOnReceive(in.LamportClock)
 	s.BroadcastService(
-		fmt.Sprintf("Client %d left ChitChat at time %d", in.ClientId, lamport),
+		fmt.Sprintf("Client %d left ChitChat at time %d", in.ClientId, lamport), lamport,
 	)
 	return &proto.Empty{}, nil
 }
@@ -71,21 +71,38 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 		log.Fatalf("client not found %v", in.Id) //todo: unsure if fatalf should be used, or error. Fatal exits program
 	}
 	client.Stream = stream
-	//todo: start go routine
+	//start goRoutine
 	go s.start_client(client)
-	//todo: log message //todo: both to terminal and file
 
-	//todo: broadcast message: "Participant X joined Chit Chat at logical time L". //todo: should be in its own message
-	message := fmt.Sprintf("Participant %d joined Chit Chat at logical time %d", client.ClientId, s.lamportClock)
-	s.BroadcastService(message)
+	//todo: comment below code Sara
+	// JOIN announcement (server-side local event)
+	lamport := s.updateLamportClockOnReceive(0) // checks max(S,0) + 1
+	s.BroadcastService(
+		fmt.Sprintf("Participant %d joined Chit Chat at logical time %d", client.ClientId, lamport),
+		lamport,
+	)
+
+	// Keep the stream open until the client disconnects
+	<-stream.Context().Done()
+
+	// LEAVE announcement happens LATER, only after disconnect
+	delete(s.clients, client.ClientId)
+	lamport = s.updateLamportClockOnReceive(0)
+	s.BroadcastService(
+		fmt.Sprintf("Participant %d left Chit Chat at logical time %d", client.ClientId, lamport),
+		lamport,
+	)
 	return nil
 }
 
 func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32) { //todo: beware the new client does not receive
 	for ClientId, client := range s.clients {
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: lamport}
-		log.Printf("[Server] Sent to %s: %s", ClientId, broadcastMessage)
+		log.Printf("[Server] Sent to %d: %s", ClientId, broadcastMessage)
 	}
+	//todo we should “support multiple concurrent client connections without blocking message delivery.”
+	// which means for should maybe be switch with a default case that handles slow client
+	// but don't really know what should happen in the case
 	//find logical time
 	//find active clients and then corresponding goroutines
 	//send message (broadcastMessage) to those goroutines
@@ -118,6 +135,7 @@ func (s *ChitChatServer) start_server() {
 	}
 
 	proto.RegisterChitChatServer(grpcServer, s) //registers the server implementation with gRPC
+	log.Println("ChitChat server listening on :5050")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

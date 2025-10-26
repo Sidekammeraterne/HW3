@@ -20,21 +20,6 @@ type Client struct {
 	LamportClock int32
 }
 
-// Increments the lamport clock by one
-func (c *Client) IncrementLamport() int32 {
-	c.LamportClock++
-	return c.LamportClock
-}
-
-// Calls the IncrementLamport function, then returns ClientInformation //todo: rename? is it what happend before joining system?
-func (c *Client) ClientInformation() *proto.ClientInformation {
-	c.IncrementLamport()
-	return &proto.ClientInformation{
-		ClientId:     c.ClientId,
-		LamportClock: c.LamportClock,
-	}
-}
-
 func main() { //todo: should we split up into methods
 	// creates a connection related to a client who can speak to the specified port, grpc client can ask for a service
 	conn, err := grpc.NewClient("localhost:5050", grpc.WithTransportCredentials(insecure.NewCredentials())) //security, don't think much about it. "Boilerplate".
@@ -67,7 +52,7 @@ func main() { //todo: should we split up into methods
 		log.Fatalf("did not recieve anything or failed to send %v", erro)
 	}
 
-	//Read in a goRoutione, loops forever
+	//Listens on stream Read in a goRoutione, loops forever todo: if it can should probably be in its own method
 	go func() {
 		for {
 			Message, err := stream.Recv()
@@ -77,26 +62,66 @@ func main() { //todo: should we split up into methods
 			}
 			//When receiving check max lamport
 			c.updateLamportOnReceive(Message.LamportClock)
-			log.Printf("Lamport Clock: %d", Message.LamportClock)
+			log.Printf("[Client][Deliver]Lamport Clock: %d, Message: %s", c.LamportClock, Message)
 		}
 	}()
 
-	//listens on the stream todo: if it can should probably be in its own method
-	message, _ := stream.Recv()
-	log.Println(message) //todo: just to use the variable
-
 	//listens to the terminal for new commands
-	go listenCommand()
+	c.listenCommand() //todo: should be go?
 
 }
 
-func listenCommand() {
-	var input string //todo: use var
+// commands:
+// message [insert text]. publishes a message
+// leave. client exits chat
+func (c *Client) listenCommand() {
+	var input string
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Type 'leave' or 'message ...'")
+	fmt.Println("Type command 'message ...' or 'leave'")
 
-	for scanner.Scan() {
+	for {
+		if !scanner.Scan() {
+			//client for some reason not responding
+			c.leave()
+			return
+		}
+		input = scanner.Text() //holds input
 
+		switch input {
+		case "leave":
+			c.leave()
+			return
+
+		case "message":
+			text := input[8:] //holds everything after "message "
+			//if message is empty
+			if text == "" {
+				fmt.Println("message is empty, try again")
+				continue
+			}
+			c.sendMessage(text)
+		case "":
+			//if input was empty, were ignoring it
+		default:
+			fmt.Println("unknown command, try again")
+		}
+
+	}
+
+}
+
+// Increments the lamport clock by one
+func (c *Client) IncrementLamport() int32 {
+	c.LamportClock++
+	return c.LamportClock
+}
+
+// Calls the IncrementLamport function, then returns ClientInformation //todo: rename? is it what happend before joining system?
+func (c *Client) ClientInformation() *proto.ClientInformation {
+	c.IncrementLamport()
+	return &proto.ClientInformation{
+		ClientId:     c.ClientId,
+		LamportClock: c.LamportClock,
 	}
 }
 
@@ -106,4 +131,29 @@ func (c *Client) updateLamportOnReceive(serverLamport int32) {
 		c.LamportClock = serverLamport
 	}
 	c.IncrementLamport()
+}
+func (c *Client) leave() {
+	//increment lamport
+	c.IncrementLamport()
+	//todo: these following lines were from CHATGPT
+	_, _ = c.Client.LeaveSystem(context.Background(), &proto.ClientInformation{
+		ClientId:     c.ClientId,
+		LamportClock: c.LamportClock,
+	})
+	log.Printf("[Client] requested leave (L=%d)", c.LamportClock) //todo
+}
+
+// Publish RPC (Lamport++ before send)
+func (c *Client) sendMessage(text string) {
+	c.IncrementLamport()
+	_, err := c.Client.PublishMessage(context.Background(), &proto.Message{
+		ClientId:       c.ClientId,
+		LamportClock:   c.LamportClock,
+		MessageContent: text,
+	})
+	if err != nil {
+		log.Printf("[Client] publish failed: %v", err)
+		return
+	}
+	log.Printf("[Client] sent: %q (L=%d)", text, c.LamportClock)
 }

@@ -65,7 +65,7 @@ func main() { //todo: should we split up into methods
 			}
 			//When receiving check max lamport
 			c.updateLamportOnReceive(Message.LamportClock)
-			// todo: debug statement, delete: log.Printf("[Client][Deliver]Lamport Clock: %d, Message: %s", c.LamportClock, Message)
+			log.Printf("[Client][Broadcast] Received: %s (server L=%d, local L=%d)", Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
 		}
 	}()
 

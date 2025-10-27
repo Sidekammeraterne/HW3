@@ -2,8 +2,9 @@ package main
 
 import (
 	proto "ITUServer/grpc" //make connection
-	"context"              //make connection - the context of the connection
-	"errors"               //create custom errors
+	"bufio"
+	"context" //make connection - the context of the connection
+	"errors"  //create custom errors
 	"fmt"
 	"io"
 	"log" //logs - used to keep track of messages
@@ -26,7 +27,7 @@ type ChitChatServer struct {
 type Client struct {
 	ClientId         int32
 	BroadcastChannel chan *proto.BroadcastMessage
-	Stream           proto.ChitChat_BroadcastServer
+	Stream           proto.ChitChat_JoinSystemServer
 }
 
 func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) {
@@ -40,7 +41,7 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 	return &proto.Empty{}, nil //returns the pointer to the client in memory
 }
 
-func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
+func (s *ChitChatServer) RegisterClient(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
 	s.updateLamportClockOnReceive(in.LamportClock) //check max lamport
 
 	// Assign client id
@@ -67,17 +68,17 @@ func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInform
 	return &proto.Empty{}, nil
 }
 
-func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_BroadcastServer) error { //todo, is this broadcast only for when joining?
-	client, ok := s.clients[in.Id]
+func (s *ChitChatServer) JoinSystem(in *proto.ClientInformation, stream proto.ChitChat_JoinSystemServer) error { //todo, is this broadcast only for when joining?
+	client, ok := s.clients[in.ClientId]
 	if !ok {
-		log.Fatalf("client not found %v", in.Id)
+		log.Fatalf("client not found %v", in.ClientId)
 	}
 	client.Stream = stream
 	//start goRoutine
 	go s.start_client(client)
 
 	//join announcement
-	lamport := s.updateLamportClockOnReceive(0) // checks max(S,0) + 1
+	lamport := s.updateLamportClockOnReceive(in.LamportClock) // checks max(S,0) + 1
 	s.BroadcastService(
 		fmt.Sprintf("Client %d joined Chit Chat at logical time %d", client.ClientId, lamport))
 
@@ -88,7 +89,6 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 
 // loops over clients in server,pushes message to clients broadcast channels and then prints 'sent to..'
 func (s *ChitChatServer) BroadcastService(broadcastMessage string) {
-
 	for ClientId, client := range s.clients {
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: s.lamportClock}
 		log.Printf("[Server][Broadcast] to %d: %s", ClientId, broadcastMessage)
@@ -139,17 +139,29 @@ func (s *ChitChatServer) start_server() {
 		log.Fatalf("Did not work")
 	}
 
-	log.Println("ChitChat server listening on :5050")
+	log.Println("[Server] ChitChat server started, listening on :5050")
+	//go function for stopping server
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			if scanner.Text() == "stop" {
+				grpcServer.GracefulStop()
+				return
+			}
+		}
+	}()
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	err = grpcServer.Serve(listener)
+
+	log.Println("[Server] ChitChat server stopped")
 }
 
 // sets up logging both into a file and the terminal - same as in client
 func (s *ChitChatServer) setupLogging() {
 	//creates the file (or overwrites it if it already exists)
-	logFile, err := os.OpenFile("logFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile("logFile.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
 		log.Fatalf("failed to create log file: %v", err)
 	}

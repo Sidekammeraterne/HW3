@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Creates a client struct, keeping track of the clients id and the Lamportclock
+// Creates a client struct, keeping track of the ChitChatClient, the client's id, the connection and the Lamportclock
 type Client struct {
 	Client       proto.ChitChatClient
 	ClientId     int32
@@ -25,7 +25,7 @@ type Client struct {
 
 func main() { //todo: should we split up into methods
 	// creates a connection related to a client who can speak to the specified port, grpc client can ask for a service
-	conn, err := grpc.NewClient("localhost:5050", grpc.WithTransportCredentials(insecure.NewCredentials())) //security, don't think much about it. "Boilerplate".
+	conn, err := grpc.NewClient("localhost:5050", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -46,7 +46,6 @@ func main() { //todo: should we split up into methods
 	}
 	c.ClientId = Message.Id
 
-	//method to listen for broadcasts?
 	//call the broadcast rpc call to open stream to receive messages from server
 	stream, erro := client.Broadcast(context.Background(), &proto.ClientId{Id: c.ClientId})
 	if erro != nil {
@@ -55,7 +54,7 @@ func main() { //todo: should we split up into methods
 
 	log.Printf("[Client] Joined Server: With id = %d at logical time %d", c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
-	//Listens on stream Read in a goRoutione, loops forever todo: if it can should probably be in its own method
+	//Listens on stream Read in a goRoutine, loops forever todo: if it can should probably be in its own method
 	go func() {
 		for {
 			Message, err := stream.Recv()

@@ -5,7 +5,6 @@ message Message {
   int32 ClientId = 1;
   int32 LamportClock = 2;
   string MessageContent = 3;
-  //todo: ikke her (server-side or client-side), men: maximum length of 128 characters
   //todo: event type?
 }
 
@@ -29,5 +28,5 @@ service ChitChat { //declares a gRPC service
   rpc PublishMessage (Message) returns (Empty) {}; //function we call from client, request contains Message and returns empty
   rpc JoinSystem (ClientInformation) returns (ClientId){}; //When Client asks for an ID
   rpc LeaveSystem (ClientInformation) returns (Empty){}; //When Client announces that it's leaving system
-  rpc Broadcast (ClientId) returns (stream BroadcastMessage){}; //When Client opens a stream to receive broadcasts, for server to sned to clien
+  rpc Broadcast (ClientId) returns (stream BroadcastMessage){}; //When Client opens a stream to receive broadcasts, for server to send to client
 }

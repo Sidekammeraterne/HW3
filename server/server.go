@@ -27,7 +27,7 @@ type Client struct {
 	Stream           proto.ChitChat_BroadcastServer
 }
 
-func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) { //if we want something with an empty in it
+func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) { //if we want something with an empty in it todo: skal den kommentar slettes?
 	//validating length of Message is <128 using RuneCountInString
 	if utf8.RuneCountInString(in.MessageContent) > 128 {
 		return nil, errors.New("message is too long, must be under 128 characters")
@@ -35,7 +35,7 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 	lamport := s.updateLamportClockOnReceive(in.LamportClock) //check max and update local lamport
 	//include server lamport in broadcast st. clients can check for max
 	s.BroadcastService(fmt.Sprintf("(%d) %d: %s", lamport, in.ClientId, in.MessageContent), lamport)
-	return &proto.Empty{}, nil //returns the pointer to the student in memory - what we are encourages to do [should be able to see this from the function declaration (?)]
+	return &proto.Empty{}, nil //returns the pointer to the client in memory - what we are encourages to do [should be able to see this from the function declaration (?)] todo: kommentar der skal løses?
 }
 
 func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {

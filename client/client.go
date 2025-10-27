@@ -86,7 +86,10 @@ func (c *Client) setupLogging(clientID int32) {
 		log.Fatalf("failed to create log file: %v", err)
 	}
 
+	c.logFile = logFile //saves the logfile to the client struct
+
 	log.SetOutput(io.MultiWriter(os.Stdout, logFile)) //sets the output to both the terminal and the file
+
 }
 
 // listens for broadcast messages from server

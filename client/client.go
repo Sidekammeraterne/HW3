@@ -177,8 +177,6 @@ func (c *Client) updateLamportOnReceive(serverLamport int32) {
 func (c *Client) leave() {
 	clientInfo := c.getClientInformation() //increments lamport clock and returns client information
 	c.isActive = false
-	//todo: these following lines were from CHATGPT
-	//todo: jeg (Charlotte) har rettet i nedstående linjer fra leaveSystem og errorhandling. jeg har sat clientInfo ind i stedet og tilføjet error. Tænker vi kan fjerne, at det er tilføjet fra Chatgpt så?
 	_, err := c.Client.LeaveSystem(context.Background(), clientInfo)
 	if err != nil {
 		log.Fatalf("failed to leave the system %v", err)

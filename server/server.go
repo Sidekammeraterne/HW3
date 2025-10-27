@@ -21,7 +21,6 @@ type ChitChatServer struct {
 	lamportClock int32
 	clientNextId int32
 	logFile      *os.File
-	//todo: maybe use a Lock
 }
 
 type Client struct {
@@ -30,7 +29,7 @@ type Client struct {
 	Stream           proto.ChitChat_BroadcastServer
 }
 
-func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) { //if we want something with an empty in it todo: skal den kommentar slettes?
+func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) (*proto.Empty, error) {
 	//validating length of Message is <128 using RuneCountInString
 	if utf8.RuneCountInString(in.MessageContent) > 128 {
 		return nil, errors.New("message is too long, must be under 128 characters")
@@ -42,7 +41,7 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 }
 
 func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
-	s.updateLamportClockOnReceive(in.LamportClock) //check max lamport todo: is this wrong
+	s.updateLamportClockOnReceive(in.LamportClock) //check max lamport
 
 	// Assign client id
 	clientId := s.clientNextId
@@ -72,14 +71,13 @@ func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInform
 func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_BroadcastServer) error { //todo, is this broadcast only for when joining?
 	client, ok := s.clients[in.Id]
 	if !ok {
-		log.Fatalf("client not found %v", in.Id) //todo: unsure if fatalf should be used, or error. Fatal exits program - Marie: I don't know but can't find the error method :(
+		log.Fatalf("client not found %v", in.Id)
 	}
 	client.Stream = stream
 	//start goRoutine
 	go s.start_client(client)
 
-	//todo: comment below code Sara
-	// JOIN announcement (server-side local event)
+	//join announcement
 	lamport := s.updateLamportClockOnReceive(0) // checks max(S,0) + 1
 	s.BroadcastService(
 		fmt.Sprintf("Participant %d joined Chit Chat at logical time %d", client.ClientId, lamport),
@@ -88,29 +86,16 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 
 	// Keep the stream open until the client disconnects - And then the stream is closed
 	<-stream.Context().Done()
-
-	// LEAVE announcement happens LATER, only after disconnect // todo: the same as in the leave function for the rpc call - do believe it should stay in Leave()
-	//delete(s.clients, client.ClientId)
-	//lamport = s.updateLamportClockOnReceive(0)
-	//s.BroadcastService(
-	//	fmt.Sprintf("Participant %d left Chit Chat at logical time %d", client.ClientId, lamport),
-	//	lamport,
-	//)
 	return nil
 }
 
 // loops over clients in server,pushes message to clients broadcast channels and then prints 'sent to..'
-func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32) { //todo: beware the new client does not receive
+func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32) {
+
 	for ClientId, client := range s.clients {
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: lamport}
 		log.Printf("[Server] Sent to %d: %s", ClientId, broadcastMessage)
 	}
-	//todo we should “support multiple concurrent client connections without blocking message delivery.” Marie: as far as I have understood, this is why we use go routines and channels to send out broadcast messages - but I don't know how to test it
-	// which means for should maybe be switch with a default case that handles slow client
-	// but don't really know what should happen in the case
-	//find logical time
-	//find active clients and then corresponding goroutines
-	//send message (broadcastMessage) to those goroutines
 }
 
 // listens for broadcast messages and sends it through the stream to the client
@@ -121,7 +106,7 @@ func (s *ChitChatServer) start_client(c *Client) {
 			err := c.Stream.Send(message)
 			if err != nil {
 				log.Fatalf("could not send message to client: %v", err)
-			} //todo: same here, fatal or error? Marie: I don't know
+			}
 		// The go routine returns when the client leaves the system
 		case <-c.Stream.Context().Done():
 			return

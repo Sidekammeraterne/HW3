@@ -54,23 +54,26 @@ func main() { //todo: should we split up into methods
 
 	log.Printf("[Client] Joined Server: With id = %d at logical time %d", c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
-	//Listens on stream Read in a goRoutine, loops forever todo: if it can should probably be in its own method
-	go func() {
-		for {
-			Message, err := stream.Recv()
-			if err != nil {
-				log.Printf("failed to receive message: %v", err)
-				return
-			}
-			//When receiving check max lamport
-			c.updateLamportOnReceive(Message.LamportClock)
-			log.Printf("[Client][Broadcast] Received: %s (server L=%d, local L=%d)", Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
-		}
-	}()
+	//listen to the stream
+	go c.listenBroadcast(stream)
 
 	//listens to the terminal for new commands
-	c.listenCommand() //todo: should be go?
+	c.listenCommand()
 
+}
+
+// listens for broadcast messages from server
+func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.BroadcastMessage]) {
+	for {
+		Message, err := stream.Recv()
+		if err != nil {
+			log.Printf("failed to receive message: %v", err)
+			return
+		}
+		//When receiving check max lamport
+		c.updateLamportOnReceive(Message.LamportClock)
+		log.Printf("[Client][Broadcast] Received: %s (server L=%d, local L=%d)", Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
+	}
 }
 
 // commands:

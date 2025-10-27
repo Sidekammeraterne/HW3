@@ -36,8 +36,8 @@ func (s *ChitChatServer) PublishMessage(ctx context.Context, in *proto.Message) 
 	}
 	lamport := s.updateLamportClockOnReceive(in.LamportClock) //check max and update local lamport
 	//include server lamport in broadcast st. clients can check for max
-	s.BroadcastService(fmt.Sprintf("(%d) %d: %s", lamport, in.ClientId, in.MessageContent), lamport)
-	return &proto.Empty{}, nil //returns the pointer to the client in memory - what we are encourages to do [should be able to see this from the function declaration (?)] todo: kommentar der skal løses?
+	s.BroadcastService(fmt.Sprintf("Client %d published the message: \"%s\" at logical time %d", in.ClientId, in.MessageContent, lamport))
+	return &proto.Empty{}, nil //returns the pointer to the client in memory
 }
 
 func (s *ChitChatServer) JoinSystem(ctx context.Context, in *proto.ClientInformation) (*proto.ClientId, error) {
@@ -63,8 +63,7 @@ func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInform
 	delete(s.clients, in.ClientId)
 	lamport := s.updateLamportClockOnReceive(in.LamportClock)
 	s.BroadcastService(
-		fmt.Sprintf("Client %d left ChitChat at time %d", in.ClientId, lamport), lamport,
-	)
+		fmt.Sprintf("Client %d left Chit Chat at logical time %d", in.ClientId, lamport))
 	return &proto.Empty{}, nil
 }
 
@@ -80,9 +79,7 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 	//join announcement
 	lamport := s.updateLamportClockOnReceive(0) // checks max(S,0) + 1
 	s.BroadcastService(
-		fmt.Sprintf("Participant %d joined Chit Chat at logical time %d", client.ClientId, lamport),
-		lamport,
-	)
+		fmt.Sprintf("Client %d joined Chit Chat at logical time %d", client.ClientId, lamport))
 
 	// Keep the stream open until the client disconnects - And then the stream is closed
 	<-stream.Context().Done()
@@ -90,11 +87,11 @@ func (s *ChitChatServer) Broadcast(in *proto.ClientId, stream proto.ChitChat_Bro
 }
 
 // loops over clients in server,pushes message to clients broadcast channels and then prints 'sent to..'
-func (s *ChitChatServer) BroadcastService(broadcastMessage string, lamport int32) {
+func (s *ChitChatServer) BroadcastService(broadcastMessage string) {
 
 	for ClientId, client := range s.clients {
-		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: lamport}
-		log.Printf("[Server] Sent to %d: %s", ClientId, broadcastMessage)
+		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: s.lamportClock}
+		log.Printf("[Server][Broadcast] to %d: %s", ClientId, broadcastMessage)
 	}
 }
 

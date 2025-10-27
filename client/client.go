@@ -50,12 +50,13 @@ func main() {
 	c.ClientId = Message.Id
 
 	//call the broadcast rpc call to open stream to receive messages from server
+	c.IncrementLamport()
 	stream, erro := client.Broadcast(context.Background(), &proto.ClientId{Id: c.ClientId})
 	if erro != nil {
 		log.Fatalf("did not recieve anything or failed to send %v", erro)
 	}
 
-	log.Printf("[Client] Joined Server: With id = %d at logical time %d", c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
+	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
 	c.setupLogging()
 	//todo: den starter med at logge i fil her - den kan flyttes rundt på til hvornår end I vil have den. Bare vær sikker på, at det er efter, at den har fået clientid
@@ -98,7 +99,7 @@ func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.Broadca
 	if !c.isActive {
 		return
 	}
-	log.Printf("[Client] listening for broadcast messages at time %d", c.LamportClock)
+	//log.Printf("[Client] listening for broadcast messages at time %d", c.LamportClock) todo: do we need to log this
 	for {
 		Message, err := stream.Recv()
 		if err != nil {
@@ -107,7 +108,7 @@ func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.Broadca
 		}
 		//When receiving check max lamport
 		c.updateLamportOnReceive(Message.LamportClock)
-		log.Printf("[Client][Broadcast] Received: %s (server L=%d, local L=%d)", Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
+		log.Printf("[Client %d][Broadcast] Received: %s (server L=%d, local L=%d)", c.ClientId, Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
 	}
 }
 
@@ -193,8 +194,8 @@ func (c *Client) sendMessage(text string) {
 		MessageContent: text,
 	})
 	if err != nil {
-		log.Printf("[Client] publish failed: %v", err)
+		log.Printf("[Client %d] publish failed: %v", c.ClientId, err)
 		return
 	}
-	log.Printf("[Client] sent: %q at time %d)", text, c.LamportClock)
+	log.Printf("[Client %d] sent: %q at time %d)", c.ClientId, text, c.LamportClock)
 }

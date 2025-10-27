@@ -19,6 +19,7 @@ type Client struct {
 	ClientId     int32
 	Conn         *grpc.ClientConn
 	LamportClock int32
+	isActive     bool
 
 	//todo: does it need some way to stop broadcast stream when leaving? Marie: it should probably close the stream - if it can as the stream was created by the server - done in server
 }
@@ -37,6 +38,7 @@ func main() { //todo: should we split up into methods
 		ClientId:     0, //starts as 0 to show that it has not gotten its id yet
 		Conn:         conn,
 		LamportClock: 0,
+		isActive:     true,
 	}
 
 	//Allows the client to join the server.
@@ -64,6 +66,11 @@ func main() { //todo: should we split up into methods
 
 // listens for broadcast messages from server
 func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.BroadcastMessage]) {
+	//stops the goroutine if the client has left the system
+	if !c.isActive {
+		return
+	}
+	log.Printf("[Client] listening for broadcast messages at time %d", c.LamportClock)
 	for {
 		Message, err := stream.Recv()
 		if err != nil {
@@ -137,9 +144,11 @@ func (c *Client) updateLamportOnReceive(serverLamport int32) {
 	}
 	c.IncrementLamport()
 }
+
 func (c *Client) leave() {
 	//increment lamport
 	c.IncrementLamport()
+	c.isActive = false //todo: skal måske rykkes ned?
 	//todo: these following lines were from CHATGPT
 	_, _ = c.Client.LeaveSystem(context.Background(), &proto.ClientInformation{
 		ClientId:     c.ClientId,

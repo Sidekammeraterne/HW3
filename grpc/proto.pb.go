@@ -282,13 +282,13 @@ const file_proto_proto_rawDesc = "" +
 	"\x0eMessageContent\x18\x02 \x01(\tR\x0eMessageContent\"\x1a\n" +
 	"\bClientId\x12\x0e\n" +
 	"\x02Id\x18\x01 \x01(\x05R\x02Id\"\a\n" +
-	"\x05Empty2\xbb\x01\n" +
+	"\x05Empty2\xc9\x01\n" +
 	"\bChitChat\x12$\n" +
-	"\x0ePublishMessage\x12\b.Message\x1a\x06.Empty\"\x00\x12-\n" +
+	"\x0ePublishMessage\x12\b.Message\x1a\x06.Empty\"\x00\x121\n" +
+	"\x0eRegisterClient\x12\x12.ClientInformation\x1a\t.ClientId\"\x00\x12+\n" +
+	"\vLeaveSystem\x12\x12.ClientInformation\x1a\x06.Empty\"\x00\x127\n" +
 	"\n" +
-	"JoinSystem\x12\x12.ClientInformation\x1a\t.ClientId\"\x00\x12+\n" +
-	"\vLeaveSystem\x12\x12.ClientInformation\x1a\x06.Empty\"\x00\x12-\n" +
-	"\tBroadcast\x12\t.ClientId\x1a\x11.BroadcastMessage\"\x000\x01B\x10Z\x0eHW3/grpc/protob\x06proto3"
+	"JoinSystem\x12\x12.ClientInformation\x1a\x11.BroadcastMessage\"\x000\x01B\x10Z\x0eHW3/grpc/protob\x06proto3"
 
 var (
 	file_proto_proto_rawDescOnce sync.Once
@@ -312,13 +312,13 @@ var file_proto_proto_goTypes = []any{
 }
 var file_proto_proto_depIdxs = []int32{
 	0, // 0: ChitChat.PublishMessage:input_type -> Message
-	1, // 1: ChitChat.JoinSystem:input_type -> ClientInformation
+	1, // 1: ChitChat.RegisterClient:input_type -> ClientInformation
 	1, // 2: ChitChat.LeaveSystem:input_type -> ClientInformation
-	3, // 3: ChitChat.Broadcast:input_type -> ClientId
+	1, // 3: ChitChat.JoinSystem:input_type -> ClientInformation
 	4, // 4: ChitChat.PublishMessage:output_type -> Empty
-	3, // 5: ChitChat.JoinSystem:output_type -> ClientId
+	3, // 5: ChitChat.RegisterClient:output_type -> ClientId
 	4, // 6: ChitChat.LeaveSystem:output_type -> Empty
-	2, // 7: ChitChat.Broadcast:output_type -> BroadcastMessage
+	2, // 7: ChitChat.JoinSystem:output_type -> BroadcastMessage
 	4, // [4:8] is the sub-list for method output_type
 	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

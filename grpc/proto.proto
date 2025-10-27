@@ -26,9 +26,9 @@ message Empty {} //Empty is a placeholder message with no fields, used when no i
 
 service ChitChat { //declares a gRPC service
   rpc PublishMessage (Message) returns (Empty) {}; //function we call from client, request contains Message and returns empty
-  rpc JoinSystem (ClientInformation) returns (ClientId){}; //When Client asks for an ID
+  rpc RegisterClient (ClientInformation) returns (ClientId){}; //When Client asks for an ID
   rpc LeaveSystem (ClientInformation) returns (Empty){}; //When Client announces that it's leaving system
-  rpc Broadcast (ClientId) returns (stream BroadcastMessage){}; //When Client opens a stream to receive broadcasts, for server to send to client
+  rpc JoinSystem (ClientInformation) returns (stream BroadcastMessage){}; //When Client opens a stream to receive broadcasts, for server to send to client
 }
 /* Everytime something is changed in proto file, run the following command in the terminal:
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto.proto

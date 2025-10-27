@@ -41,22 +41,6 @@ func main() {
 		isActive:     true,
 	}
 
-	//Allows the client to join the server.
-	Message, err := client.JoinSystem(context.Background(), c.getClientInformation()) //increments as well when joining
-	if err != nil {
-		log.Fatalf("did not recieve anything or failed to send %v", err)
-	}
-	c.ClientId = Message.Id
-
-	//call the broadcast rpc call to open stream to receive messages from server
-	c.IncrementLamport()
-	stream, erro := client.Broadcast(context.Background(), &proto.ClientId{Id: c.ClientId})
-	if erro != nil {
-		log.Fatalf("did not recieve anything or failed to send %v", erro)
-	}
-
-	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
-
 	//sets up the logging to both a file and to the terminal.
 	c.setupLogging()
 
@@ -66,6 +50,21 @@ func main() {
 			log.Fatalf("failed to close log file: %v", err)
 		}
 	}(c.logFile) //closes the log file when the main function ends
+
+	//Allows the client to join the server.
+	Message, err := client.RegisterClient(context.Background(), c.getClientInformation()) //increments as well when joining
+	if err != nil {
+		log.Fatalf("did not recieve anything or failed to send %v", err)
+	}
+	c.ClientId = Message.Id
+
+	//call the broadcast rpc call to open stream to receive messages from server
+	stream, erro := client.JoinSystem(context.Background(), c.getClientInformation())
+	if erro != nil {
+		log.Fatalf("did not recieve anything or failed to send %v", erro)
+	}
+
+	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
 	//listen to the stream
 	go c.listenBroadcast(stream)
@@ -91,7 +90,12 @@ func (c *Client) setupLogging() {
 
 // listens for broadcast messages from server
 func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.BroadcastMessage]) {
-	//stops the goroutine if the client has left the system
+
+	//stops the goroutine if the client has left the
+	//case <-c.Stream.Context().Done(): //todo: Charlotte tjek op på det her som alternativ til isActive bool
+	//todo: debug - print something so we are sure it knows the stream is done and the go routine now will return
+	//return
+	//}
 	if !c.isActive {
 		return
 	}
@@ -152,7 +156,7 @@ func (c *Client) IncrementLamport() {
 	c.LamportClock++
 }
 
-// getClientInformation calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system? C: No it also does it when leaving, so it creates the clientinformation that the grpc call needs
+// getClientInformation calls the IncrementLamport function, then returns ClientInformation
 func (c *Client) getClientInformation() *proto.ClientInformation {
 	c.IncrementLamport()
 	return &proto.ClientInformation{
@@ -177,7 +181,7 @@ func (c *Client) leave() {
 	if err != nil {
 		log.Fatalf("failed to leave the system %v", err)
 	}
-	log.Printf("[Client %d] requested leave at time %d", c.ClientId, c.LamportClock)
+	log.Printf("[Client %d][Leave]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock)
 }
 
 // Publish RPC (Lamport++ before send)
@@ -189,8 +193,8 @@ func (c *Client) sendMessage(text string) {
 		MessageContent: text,
 	})
 	if err != nil {
-		log.Printf("[Client %d] publish failed: %v", c.ClientId, err)
+		log.Printf("[Client %d][Publish] Message: failed, %v", c.ClientId, err)
 		return
 	}
-	log.Printf("[Client %d] sent: %q at time %d)", c.ClientId, text, c.LamportClock)
+	log.Printf("[Client %d][Publish] Message: %q at logical time %d", c.ClientId, text, c.LamportClock)
 }

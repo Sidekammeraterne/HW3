@@ -42,7 +42,7 @@ func main() { //todo: should we split up into methods
 	}
 
 	//Allows the client to join the server.
-	Message, err := client.JoinSystem(context.Background(), c.ClientInformation())
+	Message, err := client.JoinSystem(context.Background(), c.getClientInformation())
 	if err != nil {
 		log.Fatalf("did not recieve anything or failed to send %v", err)
 	}
@@ -122,14 +122,14 @@ func (c *Client) listenCommand() {
 
 }
 
-// Increments the lamport clock by one
+// IncrementLamport increments the lamport clock by one
 func (c *Client) IncrementLamport() int32 {
 	c.LamportClock++
 	return c.LamportClock
 }
 
-// Calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system?
-func (c *Client) ClientInformation() *proto.ClientInformation {
+// getClientInformation calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system?
+func (c *Client) getClientInformation() *proto.ClientInformation {
 	c.IncrementLamport()
 	return &proto.ClientInformation{
 		ClientId:     c.ClientId,
@@ -145,15 +145,16 @@ func (c *Client) updateLamportOnReceive(serverLamport int32) {
 	c.IncrementLamport()
 }
 
+// Increments the lamport clock, sets isActive to false and calls the leave rpc call
 func (c *Client) leave() {
-	//increment lamport
-	c.IncrementLamport()
-	c.isActive = false //todo: skal måske rykkes ned?
+	clientInfo := c.getClientInformation() //increments lamport clock and returns client information
+	c.isActive = false
 	//todo: these following lines were from CHATGPT
-	_, _ = c.Client.LeaveSystem(context.Background(), &proto.ClientInformation{
-		ClientId:     c.ClientId,
-		LamportClock: c.LamportClock,
-	})
+	//todo: jeg (Charlotte) har rettet i nedstående linjer fra leaveSystem og errorhandling. jeg har sat clientInfo ind i stedet og tilføjet error. Tænker vi kan fjerne, at det er tilføjet fra Chatgpt så?
+	_, err := c.Client.LeaveSystem(context.Background(), clientInfo)
+	if err != nil {
+		log.Fatalf("failed to leave the system %v", err)
+	}
 	log.Printf("[Client] requested leave at time %d", c.LamportClock) //todo
 }
 

@@ -159,7 +159,3 @@ func (s *ChitChatServer) updateLamportClockOnReceive(remoteLamport int32) int32 
 	s.lamportClock++
 	return s.lamportClock
 }
-
-/* Everytime something is changed in proto file, run the following command in the terminal:
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto.proto
-*/

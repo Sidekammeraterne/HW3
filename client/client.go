@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -43,7 +42,7 @@ func main() {
 	}
 
 	//Allows the client to join the server.
-	Message, err := client.JoinSystem(context.Background(), c.getClientInformation())
+	Message, err := client.JoinSystem(context.Background(), c.getClientInformation()) //increments as well when joining
 	if err != nil {
 		log.Fatalf("did not recieve anything or failed to send %v", err)
 	}
@@ -59,13 +58,13 @@ func main() {
 	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
 	c.setupLogging()
-	//todo: den starter med at logge i fil her - den kan flyttes rundt på til hvornår end I vil have den. Bare vær sikker på, at det er efter, at den har fået clientid
+
 	defer func(logFile *os.File) {
 		err := logFile.Close()
 		if err != nil {
 			log.Fatalf("failed to close log file: %v", err)
 		}
-	}(c.logFile) //closes the log file when the main function ends //todo: før hed den bare defer logFile.Close(). Resten rundt om er skrevet af GoLand
+	}(c.logFile) //closes the log file when the main function ends
 
 	//listen to the stream
 	go c.listenBroadcast(stream)
@@ -77,12 +76,8 @@ func main() {
 
 // sets up logging both into a file and the terminal
 func (c *Client) setupLogging() {
-	//creates the file address
-	clientIdString := strconv.Itoa(int(c.ClientId))
-	fileAddress := "client" + clientIdString + ".log"
-
 	//creates the file (or overwrites it if it already exists)
-	logFile, err := os.Create(fileAddress)
+	logFile, err := os.OpenFile("logFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666) //create file or append if already existing. Perm is permission bits.
 	if err != nil {
 		log.Fatalf("failed to create log file: %v", err)
 	}
@@ -152,9 +147,8 @@ func (c *Client) listenCommand() {
 }
 
 // IncrementLamport increments the lamport clock by one
-func (c *Client) IncrementLamport() int32 {
+func (c *Client) IncrementLamport() {
 	c.LamportClock++
-	return c.LamportClock
 }
 
 // getClientInformation calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system?
@@ -182,7 +176,7 @@ func (c *Client) leave() {
 	if err != nil {
 		log.Fatalf("failed to leave the system %v", err)
 	}
-	log.Printf("[Client] requested leave at time %d", c.LamportClock) //todo
+	log.Printf("[Client %d] requested leave at time %d", c.ClientId, c.LamportClock)
 }
 
 // Publish RPC (Lamport++ before send)

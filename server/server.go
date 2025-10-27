@@ -125,12 +125,6 @@ func (s *ChitChatServer) start_server() {
 	}
 
 	proto.RegisterChitChatServer(grpcServer, s) //registers the server implementation with gRPC
-	log.Println("ChitChat server listening on :5050")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	//todo: jeg er meget i tvivl om, hvor det her skal være i server. Kører programmet herinde indtil det sluttes? defer close lukker filen når metoden, den er i, slutter, så hvis start_server slutter først programmet gør, skal den andetsteds hen
 	//setup logging
 	s.setupLogging()
 	defer func(logFile *os.File) {
@@ -138,18 +132,24 @@ func (s *ChitChatServer) start_server() {
 		if err != nil {
 			log.Fatalf("failed to close log file: %v", err)
 		}
-	}(s.logFile) //closes the log file when the main function ends //todo: samme som i client, GoLand har skrevet error handling
+	}(s.logFile) //closes the log file when the main function ends
 
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		log.Fatalf("Did not work")
 	}
+
+	log.Println("ChitChat server listening on :5050")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
 }
 
 // sets up logging both into a file and the terminal - same as in client
 func (s *ChitChatServer) setupLogging() {
 	//creates the file (or overwrites it if it already exists)
-	logFile, err := os.Create("server.log")
+	logFile, err := os.OpenFile("logFile.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("failed to create log file: %v", err)
 	}

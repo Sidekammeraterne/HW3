@@ -57,6 +57,7 @@ func main() {
 
 	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
+	//sets up the logging to both a file and to the terminal.
 	c.setupLogging()
 
 	defer func(logFile *os.File) {
@@ -151,7 +152,7 @@ func (c *Client) IncrementLamport() {
 	c.LamportClock++
 }
 
-// getClientInformation calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system?
+// getClientInformation calls the IncrementLamport function, then returns ClientInformation //todo: rename since it is what happens only before joining system? C: No it also does it when leaving, so it creates the clientinformation that the grpc call needs
 func (c *Client) getClientInformation() *proto.ClientInformation {
 	c.IncrementLamport()
 	return &proto.ClientInformation{

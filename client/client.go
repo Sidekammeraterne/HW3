@@ -57,8 +57,8 @@ func main() {
 
 	log.Printf("[Client] Joined Server: With id = %d at logical time %d", c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
-	c.setupLogging(c.ClientId)
-	//todo: den starter med at logge i fil her - den kan flyttes rundt på til hvornår end I vil have den.
+	c.setupLogging()
+	//todo: den starter med at logge i fil her - den kan flyttes rundt på til hvornår end I vil have den. Bare vær sikker på, at det er efter, at den har fået clientid
 	defer func(logFile *os.File) {
 		err := logFile.Close()
 		if err != nil {
@@ -75,9 +75,9 @@ func main() {
 }
 
 // sets up logging both into a file and the terminal
-func (c *Client) setupLogging(clientID int32) {
+func (c *Client) setupLogging() {
 	//creates the file address
-	clientIdString := strconv.Itoa(int(clientID))
+	clientIdString := strconv.Itoa(int(c.ClientId))
 	fileAddress := "client" + clientIdString + ".log"
 
 	//creates the file (or overwrites it if it already exists)

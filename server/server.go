@@ -5,8 +5,10 @@ import (
 	"context"              //make connection - the context of the connection
 	"errors"               //create custom errors
 	"fmt"
-	"log"          //logs - used to keep track of messages
-	"net"          //make connection to net
+	"io"
+	"log" //logs - used to keep track of messages
+	"net" //make connection to net
+	"os"
 	"unicode/utf8" //used to verify number of chars
 
 	"google.golang.org/grpc"
@@ -18,6 +20,7 @@ type ChitChatServer struct {
 	clients      map[int32]*Client //map of active clients
 	lamportClock int32
 	clientNextId int32
+	logFile      *os.File
 	//todo: maybe use a Lock
 }
 
@@ -145,10 +148,33 @@ func (s *ChitChatServer) start_server() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	//todo: jeg er meget i tvivl om, hvor det her skal være i server. Kører programmet herinde indtil det sluttes? defer close lukker filen når metoden, den er i, slutter, så hvis start_server slutter først programmet gør, skal den andetsteds hen
+	//setup logging
+	s.setupLogging()
+	defer func(logFile *os.File) {
+		err := logFile.Close()
+		if err != nil {
+			log.Fatalf("failed to close log file: %v", err)
+		}
+	}(s.logFile) //closes the log file when the main function ends //todo: samme som i client, GoLand har skrevet error handling
+
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		log.Fatalf("Did not work")
 	}
+}
+
+// sets up logging both into a file and the terminal - same as in client
+func (s *ChitChatServer) setupLogging() {
+	//creates the file (or overwrites it if it already exists)
+	logFile, err := os.Create("server.log")
+	if err != nil {
+		log.Fatalf("failed to create log file: %v", err)
+	}
+
+	s.logFile = logFile //saves the logfile to the client struct
+
+	log.SetOutput(io.MultiWriter(os.Stdout, logFile)) //sets the output to both the terminal and the file
 }
 
 // utility method that on message receive checks max lamport and updates local

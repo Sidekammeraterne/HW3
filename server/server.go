@@ -118,13 +118,6 @@ func main() {
 }
 
 func (s *ChitChatServer) start_server() {
-	grpcServer := grpc.NewServer()              //creates new gRPC server instance
-	listener, err := net.Listen("tcp", ":5050") //listens on TCP port using net.Listen
-	if err != nil {
-		log.Fatalf("Did not work")
-	}
-
-	proto.RegisterChitChatServer(grpcServer, s) //registers the server implementation with gRPC
 	//setup logging
 	s.setupLogging()
 	defer func(logFile *os.File) {
@@ -134,7 +127,14 @@ func (s *ChitChatServer) start_server() {
 		}
 	}(s.logFile) //closes the log file when the main function ends
 
-	err = grpcServer.Serve(listener)
+	grpcServer := grpc.NewServer()              //creates new gRPC server instance
+	proto.RegisterChitChatServer(grpcServer, s) //registers the server implementation with gRPC
+
+	listener, err := net.Listen("tcp", ":5050") //listens on TCP port using net.Listen
+	if err != nil {
+		log.Fatalf("Did not work")
+	}
+
 	if err != nil {
 		log.Fatalf("Did not work")
 	}
@@ -143,7 +143,7 @@ func (s *ChitChatServer) start_server() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
+	err = grpcServer.Serve(listener)
 }
 
 // sets up logging both into a file and the terminal - same as in client

@@ -5,8 +5,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -20,11 +22,10 @@ type Client struct {
 	Conn         *grpc.ClientConn
 	LamportClock int32
 	isActive     bool
-
-	//todo: does it need some way to stop broadcast stream when leaving? Marie: it should probably close the stream - if it can as the stream was created by the server - done in server
+	logFile      *os.File
 }
 
-func main() { //todo: should we split up into methods
+func main() {
 	// creates a connection related to a client who can speak to the specified port, grpc client can ask for a service
 	conn, err := grpc.NewClient("localhost:5050", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -56,12 +57,36 @@ func main() { //todo: should we split up into methods
 
 	log.Printf("[Client] Joined Server: With id = %d at logical time %d", c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
 
+	c.setupLogging(c.ClientId)
+	//todo: den starter med at logge i fil her - den kan flyttes rundt på til hvornår end I vil have den.
+	defer func(logFile *os.File) {
+		err := logFile.Close()
+		if err != nil {
+			log.Fatalf("failed to close log file: %v", err)
+		}
+	}(c.logFile) //closes the log file when the main function ends //todo: før hed den bare defer logFile.Close(). Resten rundt om er skrevet af GoLand
+
 	//listen to the stream
 	go c.listenBroadcast(stream)
 
 	//listens to the terminal for new commands
 	c.listenCommand()
 
+}
+
+// sets up logging both into a file and the terminal
+func (c *Client) setupLogging(clientID int32) {
+	//creates the file address
+	clientIdString := strconv.Itoa(int(clientID))
+	fileAddress := "client" + clientIdString + ".log"
+
+	//creates the file (or overwrites it if it already exists)
+	logFile, err := os.Create(fileAddress)
+	if err != nil {
+		log.Fatalf("failed to create log file: %v", err)
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, logFile)) //sets the output to both the terminal and the file
 }
 
 // listens for broadcast messages from server

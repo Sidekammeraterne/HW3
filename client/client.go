@@ -90,25 +90,24 @@ func (c *Client) setupLogging() {
 
 // listens for broadcast messages from server
 func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.BroadcastMessage]) {
+	ctx := stream.Context()
 
-	//stops the goroutine if the client has left the
-	//case <-c.Stream.Context().Done(): //todo: Charlotte tjek op på det her som alternativ til isActive bool
-	//todo: debug - print something so we are sure it knows the stream is done and the go routine now will return
-	//return
-	//}
-	if !c.isActive {
-		return
-	}
-	//log.Printf("[Client] listening for broadcast messages at time %d", c.LamportClock) todo: do we need to log this
 	for {
-		Message, err := stream.Recv()
-		if err != nil {
-			log.Printf("failed to receive message: %v", err)
+		select {
+		case <-ctx.Done():
+			//the client has left the system, the goroutine stops
 			return
+
+		default:
+			Message, err := stream.Recv()
+			if err != nil {
+				log.Printf("failed to receive message: %v", err)
+				return
+			}
+			//When receiving check max lamport
+			c.updateLamportOnReceive(Message.LamportClock)
+			log.Printf("[Client %d][Broadcast] Received: %s (server L=%d, local L=%d)", c.ClientId, Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
 		}
-		//When receiving check max lamport
-		c.updateLamportOnReceive(Message.LamportClock)
-		log.Printf("[Client %d][Broadcast] Received: %s (server L=%d, local L=%d)", c.ClientId, Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
 	}
 }
 

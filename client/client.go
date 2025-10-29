@@ -41,6 +41,9 @@ func main() {
 		isActive:     true,
 	}
 
+	//local event: creation of client instance
+	c.IncrementLamport()
+
 	//sets up the logging to both a file and to the terminal.
 	c.setupLogging()
 
@@ -59,7 +62,7 @@ func main() {
 	c.ClientId = Message.Id
 
 	//call the broadcast rpc call to open stream to receive messages from server
-	stream, erro := client.JoinSystem(context.Background(), c.getClientInformation())
+	stream, erro := client.JoinSystem(context.Background(), c.getClientInformation()) //increments as well when joining
 	if erro != nil {
 		log.Fatalf("did not recieve anything or failed to send %v", erro)
 	}
@@ -106,7 +109,7 @@ func (c *Client) listenBroadcast(stream grpc.ServerStreamingClient[proto.Broadca
 			}
 			//When receiving check max lamport
 			c.updateLamportOnReceive(Message.LamportClock)
-			log.Printf("[Client %d][Broadcast] Received: %s (server L=%d, local L=%d)", c.ClientId, Message.MessageContent, Message.LamportClock, c.LamportClock) //what's received from server
+			log.Printf("[Client %d][Broadcast] Received: %s", c.ClientId, Message.MessageContent) //what's received from server
 		}
 	}
 }
@@ -186,14 +189,16 @@ func (c *Client) leave() {
 // Publish RPC (Lamport++ before send)
 func (c *Client) sendMessage(text string) {
 	c.IncrementLamport()
+	lamport := c.LamportClock
+
 	_, err := c.Client.PublishMessage(context.Background(), &proto.Message{
 		ClientId:       c.ClientId,
-		LamportClock:   c.LamportClock,
+		LamportClock:   lamport,
 		MessageContent: text,
 	})
 	if err != nil {
 		log.Printf("[Client %d][Publish] Message: failed, %v", c.ClientId, err)
 		return
 	}
-	log.Printf("[Client %d][Publish] Message: %q at logical time %d", c.ClientId, text, c.LamportClock)
+	log.Printf("[Client %d][Publish] Message: %q at logical time %d", c.ClientId, text, lamport)
 }

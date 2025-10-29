@@ -48,7 +48,8 @@ func (s *ChitChatServer) RegisterClient(ctx context.Context, in *proto.ClientInf
 	clientId := s.clientNextId
 	s.clientNextId++
 
-	//add client to clients list
+	//Local event: add client to clients list
+	s.lamportClock++
 	client := &Client{
 		ClientId:         clientId,
 		BroadcastChannel: make(chan *proto.BroadcastMessage, 10), //buffered channel with size 10
@@ -60,9 +61,11 @@ func (s *ChitChatServer) RegisterClient(ctx context.Context, in *proto.ClientInf
 }
 
 func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInformation) (*proto.Empty, error) {
-	//remove client ID from list
-	delete(s.clients, in.ClientId)
 	lamport := s.updateLamportClockOnReceive(in.LamportClock)
+	//Local event: remove client from list
+	s.lamportClock++
+	delete(s.clients, in.ClientId)
+
 	s.BroadcastService(
 		fmt.Sprintf("Client %d left Chit Chat at logical time %d", in.ClientId, lamport))
 	return &proto.Empty{}, nil
@@ -89,6 +92,8 @@ func (s *ChitChatServer) JoinSystem(in *proto.ClientInformation, stream proto.Ch
 
 // loops over clients in server,pushes message to clients broadcast channels and then prints 'sent to..'
 func (s *ChitChatServer) BroadcastService(broadcastMessage string) {
+	//local event: send broadcast to client go routines that sends to streams
+	s.lamportClock++
 	for ClientId, client := range s.clients {
 		client.BroadcastChannel <- &proto.BroadcastMessage{MessageContent: broadcastMessage, LamportClock: s.lamportClock}
 		log.Printf("[Server][Broadcast] to %d: %s", ClientId, broadcastMessage)
@@ -118,6 +123,8 @@ func main() {
 }
 
 func (s *ChitChatServer) start_server() {
+	//local event: server start
+	s.lamportClock++
 	//setup logging
 	s.setupLogging()
 	defer func(logFile *os.File) {
@@ -154,7 +161,8 @@ func (s *ChitChatServer) start_server() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	err = grpcServer.Serve(listener)
-
+	//local event: server stop
+	s.lamportClock++
 	log.Println("[Server] ChitChat server stopped")
 }
 

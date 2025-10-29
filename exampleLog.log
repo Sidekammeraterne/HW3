@@ -1,0 +1,29 @@
+2025/10/29 15:32:07 [Server] ChitChat server started, listening on :5050
+2025/10/29 15:32:12 [Server][Broadcast] to 1: Client 1 joined Chit Chat at logical time 5
+2025/10/29 15:32:15 [Server][Broadcast] to 1: Client 2 joined Chit Chat at logical time 9
+2025/10/29 15:32:15 [Server][Broadcast] to 2: Client 2 joined Chit Chat at logical time 9
+2025/10/29 15:32:24 [Server][Broadcast] to 1: Client 1 published the message: "hi" at logical time 13
+2025/10/29 15:32:24 [Server][Broadcast] to 2: Client 1 published the message: "hi" at logical time 13
+2025/10/29 15:32:28 [Server][Broadcast] to 1: Client 2 published the message: "hello" at logical time 17
+2025/10/29 15:32:28 [Server][Broadcast] to 2: Client 2 published the message: "hello" at logical time 17
+2025/10/29 15:32:39 [Server][Broadcast] to 1: Client 3 joined Chit Chat at logical time 21
+2025/10/29 15:32:39 [Server][Broadcast] to 2: Client 3 joined Chit Chat at logical time 21
+2025/10/29 15:32:39 [Server][Broadcast] to 3: Client 3 joined Chit Chat at logical time 21
+2025/10/29 15:32:47 [Server][Broadcast] to 1: Client 3 published the message: "hi guys" at logical time 25
+2025/10/29 15:32:47 [Server][Broadcast] to 2: Client 3 published the message: "hi guys" at logical time 25
+2025/10/29 15:32:47 [Server][Broadcast] to 3: Client 3 published the message: "hi guys" at logical time 25
+2025/10/29 15:34:07 [Client 1][Leave]: Client id = 1 at logical time 28
+2025/10/29 15:34:07 [Client 2][Broadcast] Received: Client 1 left Chit Chat at logical time 29
+2025/10/29 15:34:07 [Client 3][Broadcast] Received: Client 1 left Chit Chat at logical time 29
+2025/10/29 15:34:07 [Server][Broadcast] to 2: Client 1 left Chit Chat at logical time 29
+2025/10/29 15:34:07 [Server][Broadcast] to 3: Client 1 left Chit Chat at logical time 29
+2025/10/29 15:34:48 [Client 2][Broadcast] Received: Client 2 published the message: "I also have to go" at logical time 34
+2025/10/29 15:34:48 [Client 2][Publish] Message: "I also have to go" at logical time 33
+2025/10/29 15:34:48 [Client 3][Broadcast] Received: Client 2 published the message: "I also have to go" at logical time 34
+2025/10/29 15:34:48 [Server][Broadcast] to 2: Client 2 published the message: "I also have to go" at logical time 34
+2025/10/29 15:34:48 [Server][Broadcast] to 3: Client 2 published the message: "I also have to go" at logical time 34
+2025/10/29 15:34:52 [Client 2][Leave]: Client id = 2 at logical time 37
+2025/10/29 15:34:52 [Client 3][Broadcast] Received: Client 2 left Chit Chat at logical time 38
+2025/10/29 15:34:52 [Server][Broadcast] to 3: Client 2 left Chit Chat at logical time 38
+2025/10/29 15:35:02 [Client 3][Leave]: Client id = 3 at logical time 42
+2025/10/29 15:35:06 [Server] ChitChat server stopped

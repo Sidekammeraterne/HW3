@@ -71,7 +71,7 @@ func (s *ChitChatServer) LeaveSystem(ctx context.Context, in *proto.ClientInform
 	return &proto.Empty{}, nil
 }
 
-func (s *ChitChatServer) JoinSystem(in *proto.ClientInformation, stream proto.ChitChat_JoinSystemServer) error { //todo, is this broadcast only for when joining?
+func (s *ChitChatServer) JoinSystem(in *proto.ClientInformation, stream proto.ChitChat_JoinSystemServer) error {
 	client, ok := s.clients[in.ClientId]
 	if !ok {
 		log.Fatalf("client not found %v", in.ClientId)

@@ -67,7 +67,7 @@ func main() {
 		log.Fatalf("did not recieve anything or failed to send %v", erro)
 	}
 
-	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock) //todo: is this where to log? Nope it is first offecially a part of the system after the rpc call broadcast (I want to change the names) - right place now
+	log.Printf("[Client %d][Join]: Client id = %d at logical time %d", c.ClientId, c.ClientId, c.LamportClock)
 
 	//listen to the stream
 	go c.listenBroadcast(stream)

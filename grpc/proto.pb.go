@@ -25,7 +25,7 @@ type Message struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ClientId       int32                  `protobuf:"varint,1,opt,name=ClientId,proto3" json:"ClientId,omitempty"`
 	LamportClock   int32                  `protobuf:"varint,2,opt,name=LamportClock,proto3" json:"LamportClock,omitempty"`
-	MessageContent string                 `protobuf:"bytes,3,opt,name=MessageContent,proto3" json:"MessageContent,omitempty"` //todo: event type?
+	MessageContent string                 `protobuf:"bytes,3,opt,name=MessageContent,proto3" json:"MessageContent,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }

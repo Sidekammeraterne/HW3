@@ -5,7 +5,6 @@ message Message {
   int32 ClientId = 1;
   int32 LamportClock = 2;
   string MessageContent = 3;
-  //todo: event type?
 }
 
 message ClientInformation{
